@@ -1,45 +1,27 @@
-
-# coding: utf-8
-
-# In[2]:
-
+'''
+2-LSTM approach trains the model using query and its response and predits the output by comparing train data vectors.
+ '''
+import pickle
+from sklearn.cross_validation import train_test_split
+import pandas as pd
+from sklearn.metrics.pairwise import cosine_similarity
+import numpy as np
 
 #loading the trained tfidf and countvectoriser model-------------
-import pickle
 with open('tfidf.pkl', 'rb') as pickle_file:
     tfidf = pickle.load(pickle_file)
 with open('count_vec.pkl', 'rb') as pickle_file:
     count_vect = pickle.load(pickle_file)
 
-
-# In[4]:
-
-
 #loading the data
-import pandas as pd
 data=pd.read_csv("processed1.csv")
-
-
-# In[5]:
-
-
-from sklearn.cross_validation import train_test_split
 X_train,X_test=train_test_split(data,test_size=0.3)
 
-
-# In[6]:
-
-
-from sklearn.metrics.pairwise import cosine_similarity
 def get_vector(sentence):
     doc_freq_term = count_vect.transform([sentence])
     return tfidf.transform(doc_freq_term)
 def cosine(str1,str2):
     return cosine_similarity(get_vector(str1),get_vector(str2))
-
-
-# In[47]:
-
 
 #cosine similarity naive model--------------------------------------------
 def printrecommandations(sentance_test):
@@ -58,74 +40,47 @@ def printrecommandations(sentance_test):
         print("Sentence Matched \n",data['Responses'][maxindex])
         print("="*90)        
 
-
-# In[7]:
-
-
-test=pd.read_csv("test.csv")
-
-
-# In[ ]:
-
-
 for k,v in X_test.Contents.items():
     printrecommandations(v)
 
 
-# In[9]:
+#end of cosine similarity model
 
-
+#get tfidf vectors for train data
 X=[]
 y=[]
 for i,v in X_train.Contents.items():
     X.append(get_vector(v).todense())
     y.append(get_vector(X_train['Responses'][i]).todense())
 
-
-# In[10]:
-
-
-import numpy as np
+#get tfidf vectors for test data
 x_test_vec=[]
 for i,v in X_test.Contents.items():
     x_test_vec.append(get_vector(v).todense())
 x_test_vec=np.array(x_test_vec)
-
-
-# In[11]:
-
-
 x_test_vec=x_test_vec.reshape(3077,1,50,589)
 
-
-# In[12]:
-
-
-import numpy as np
+#reshape to feed as input to the model
 X=np.array(X).reshape(7178,50,589)
 y=np.array(y).reshape(7178,50,589)
-
-
-# In[114]:
 
 
 #2 -LSTM model-------------------------------------------------------------------------
 import tensorflow as tf
 from tensorflow.contrib import rnn
 import numpy as np
+
+#model characteristics
 time_steps=50
-
 num_units=128
-
 n_input=589
-
 learning_rate=0.001
 n_classes=300
 batch_size=97
 no_batch=int(len(X)/batch_size)
 
-g1 = tf.Graph() ## This is one graph
-g2 = tf.Graph() ## This is another graph
+g1 = tf.Graph() ## This is first graph
+g2 = tf.Graph() ## This is second graph
 
 
 
@@ -148,8 +103,6 @@ with g1.as_default():
     tv1 = tf.trainable_variables()
     regularization_cost1 = tf.reduce_sum([ tf.nn.l2_loss(v) for v in tv1 ])
     #LOSS
-#     loss1=tf.losses.mean_squared_error(labels=y1,predictions=prediction1)+regularization_cost1
-  
     normalize_a1 = tf.nn.l2_normalize(y1,0)        
     normalize_b1 = tf.nn.l2_normalize(prediction1,0)
     loss1=1-tf.reduce_sum(tf.multiply(normalize_a1,normalize_b1))
@@ -157,7 +110,6 @@ with g1.as_default():
     opt1=tf.train.AdamOptimizer(learning_rate=learning_rate).minimize(loss1)
     init1=tf.global_variables_initializer()
     correct_prediction1=tf.equal(tf.argmax(prediction1,1),tf.argmax(y1,1))
-#     accuracy1=tf.reduce_mean(tf.cast(correct_prediction1,tf.float32))
 
     
 #GRAPH 2
@@ -177,7 +129,7 @@ with g2.as_default():
     
     tv2 = tf.trainable_variables()
     regularization_cost2 = tf.reduce_sum([ tf.nn.l2_loss(v) for v in tv2 ])
-#     loss2=tf.losses.mean_squared_error(labels=y2,predictions=prediction2)+regularization_cost2
+    #LOSS
     normalize_a2 = tf.nn.l2_normalize(y2,0)        
     normalize_b2 = tf.nn.l2_normalize(prediction2,0)
     loss2=1-tf.reduce_sum(tf.multiply(normalize_a2,normalize_b2))
@@ -186,14 +138,14 @@ with g2.as_default():
     opt2=tf.train.AdamOptimizer(learning_rate=learning_rate).minimize(loss2)
     init2=tf.global_variables_initializer()
     correct_prediction2=tf.equal(tf.argmax(prediction2,1),tf.argmax(y2,1))
-#     accuracy2=tf.reduce_mean(tf.cast(correct_prediction2,tf.float32))
 
-
+#create two sessions
 sess1 = tf.Session(graph=g1)
 sess2 = tf.Session(graph=g2)
 sess1.run(init1)
 sess2.run(init2)
 
+#training
 iter=1
 batch=1
 count=0
@@ -232,10 +184,8 @@ while True:
 print( epoch_loss)
 
 
-# In[95]:
 
-
-#training the model
+#getting the vectors for training set from trained model
 no_batch=74
 answer_vectors=[]
 query_vectors=[]
@@ -253,16 +203,8 @@ for i in range(no_batch):
     query_vectors.append(p1)
     answer_vectors.append(p2)
 
-
-# In[96]:
-
-
 query_vectors=np.array(query_vectors).reshape(74*97,1,n_classes)
 answer_vectors=np.array(answer_vectors).reshape(74*97,1,n_classes)
-
-
-# In[97]:
-
 
 #testing the model
 for query,vector in zip(X_test.Contents.items(),enumerate(x_test_vec)):
@@ -295,30 +237,3 @@ for query,vector in zip(X_test.Contents.items(),enumerate(x_test_vec)):
     print("\nResponse : ",X_train["Responses"][minind])
     print("="*90)
 #test end
-
-
-# In[112]:
-
-
-tf.losses.cosine_distance(
-    labels=[1,2,3,0],
-    predictions=[1,2,4,2222222],
-    axis=0,
-    weights=1.0,
-    scope=None,
-    dim=None,
-    reduction=Reduction.MEAN
-)
-
-
-# In[115]:
-
-
-a = tf.placeholder(tf.float32, shape=[None], name="input_placeholder_a")
-b = tf.placeholder(tf.float32, shape=[None], name="input_placeholder_b")
-normalize_a = tf.nn.l2_normalize(a,0)        
-normalize_b = tf.nn.l2_normalize(b,0)
-cos_similarity=tf.reduce_sum(tf.multiply(normalize_a,normalize_b))
-sess=tf.Session()
-print(sess.run(cos_similarity,feed_dict={a:[[1,2,3]],b:[[4,5,6]]}))
-
