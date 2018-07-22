@@ -29,7 +29,7 @@ Model for recommending answers to customer support queries was built using tenso
 3. Perform K-Means Clustering on trained data.
 4. Give corresponding response of the queries in which test query belongs to.
 
-###2-LSTM aprroach
+### 2-LSTM aprroach
 [Link to paper on the two LSTM approach](https://arxiv.org/pdf/1707.01378.pdf)
 
 ### Chrome  Extension 
