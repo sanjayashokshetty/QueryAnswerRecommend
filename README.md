@@ -6,7 +6,7 @@ Model for recommending answers to customer support queries was built using tenso
 ## Datapreparation
 ![alt text](images/steps.png "Description goes here")
 
-## How the program runs?
+## Running the program
 
 ![alt text](images/hiw.png "Description goes here")
 
@@ -24,14 +24,11 @@ Model for recommending answers to customer support queries was built using tenso
 
 ### K-means clustering with doc2vec vectors
 
-1. Create a Doc2Vec and model and train it.
-2. Calculate sentence vectors of Queries from trained model
-3. Perform K-Means Clustering on trained data.
-4. Give corresponding response of the queries in which test query belongs to.
+1. Create Doc-2-vec model and Train it. 
+2. Get most similar vector to test vector.
 
 ### 2-LSTM aprroach
 [Link to paper on the two LSTM approach](https://arxiv.org/pdf/1707.01378.pdf)
 
 ### Chrome  Extension 
-The purpose of the extension is so that it sends a POST request of a highlited text(in our case the query for which response is requires) to our server
-which inturn gives back the suggested response.
+The chrome extension was made for deployment purpose which sends the post request to the code running in Flask server and gets back the suggested response.
